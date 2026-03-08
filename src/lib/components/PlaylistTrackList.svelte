@@ -1,6 +1,7 @@
 <script lang="ts">
-  import type { PlaylistEntry, Track } from "$lib/types";
+  import type { PlaylistEntry } from "$lib/types";
   import { playlistState } from "$lib/stores/playlist.svelte";
+  import { playlistSelectionState } from "$lib/stores/selection.svelte";
   import Sparkline from "./Sparkline.svelte";
 
   let {
@@ -14,6 +15,7 @@
   } = $props();
 
   let dragOverIndex = $state<number | null>(null);
+  let allEntryIds = $derived(entries.map((e) => e.id));
 
   function formatDuration(secs: number | null): string {
     if (secs === null) return "--:--";
@@ -22,9 +24,29 @@
     return `${m}:${s.toString().padStart(2, "0")}`;
   }
 
+  function handleClick(e: MouseEvent, entry: PlaylistEntry) {
+    if (e.shiftKey) {
+      playlistSelectionState.rangeSelect(entry.id, allEntryIds);
+    } else if (e.metaKey || e.ctrlKey) {
+      playlistSelectionState.toggle(entry.id);
+    } else {
+      playlistSelectionState.select(entry.id);
+    }
+  }
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === "Backspace" || e.key === "Delete") {
+      const ids = playlistSelectionState.ids;
+      if (ids.length > 0) {
+        e.preventDefault();
+        playlistState.removeEntries(ids);
+        playlistSelectionState.clear();
+      }
+    }
+  }
+
   function handleDragOver(e: DragEvent, index: number) {
     e.preventDefault();
-    // Intra-list reorder uses "move", cross-pane from search uses "copy"
     const isReorder = e.dataTransfer?.types.includes("text/x-entry-id");
     e.dataTransfer!.dropEffect = isReorder ? "move" : "copy";
     dragOverIndex = index;
@@ -39,12 +61,8 @@
     e.stopPropagation();
     dragOverIndex = null;
 
-    const types = Array.from(e.dataTransfer?.types ?? []);
-    console.log("[PlaylistTrackList] drop at index", dropIndex, "types:", types);
-
     const data = e.dataTransfer?.getData("text/x-entry-id");
     if (data) {
-      // Intra-list reorder
       const dragEntryId = parseInt(data);
       const currentOrder = entries.map((e) => e.id);
       const fromIndex = currentOrder.indexOf(dragEntryId);
@@ -57,7 +75,6 @@
       return;
     }
 
-    // Cross-pane drop (track IDs from search)
     const jsonData = e.dataTransfer?.getData("application/json");
     if (jsonData) {
       try {
@@ -76,13 +93,18 @@
 
   function handleContextMenu(e: MouseEvent, entry: PlaylistEntry) {
     e.preventDefault();
+    if (!playlistSelectionState.isSelected(entry.id)) {
+      playlistSelectionState.select(entry.id);
+    }
     oncontextmenu?.(e, entry);
   }
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class="overflow-y-auto h-full"
+  class="overflow-y-auto h-full outline-none"
+  tabindex="0"
+  onkeydown={handleKeyDown}
   ondragover={(e) => { e.preventDefault(); e.dataTransfer!.dropEffect = "copy"; }}
   ondrop={(e) => handleDrop(e, entries.length)}
 >
@@ -90,9 +112,12 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="flex items-center gap-2 px-2 py-0.5 text-xs cursor-default hover:bg-neutral-800 select-none"
+      class:bg-blue-900={playlistSelectionState.isSelected(entry.id)}
+      class:hover:bg-blue-800={playlistSelectionState.isSelected(entry.id)}
       class:border-t-2={dragOverIndex === i}
       class:border-blue-500={dragOverIndex === i}
       draggable="true"
+      onclick={(e) => handleClick(e, entry)}
       ondragstart={(e) => handleEntryDragStart(e, entry)}
       ondragover={(e) => handleDragOver(e, i)}
       ondragleave={handleDragLeave}
@@ -113,7 +138,6 @@
     </div>
   {/each}
 
-  <!-- Drop zone at the end -->
   {#if entries.length > 0}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div

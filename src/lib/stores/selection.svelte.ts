@@ -62,3 +62,4 @@ class SelectionState {
 }
 
 export const selectionState = new SelectionState();
+export const playlistSelectionState = new SelectionState();

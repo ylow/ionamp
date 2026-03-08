@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PlaylistEntry } from "$lib/types";
-  import { selectionState } from "$lib/stores/selection.svelte";
+  import { selectionState, playlistSelectionState } from "$lib/stores/selection.svelte";
   import { playlistState } from "$lib/stores/playlist.svelte";
   import { searchState } from "$lib/stores/search.svelte";
   import { deleteTracks } from "$lib/api";
@@ -19,9 +19,6 @@
     onclose: () => void;
   } = $props();
 
-  let showTagDialog = $state(false);
-  let showProperties = $state(false);
-
   async function handleRemoveFromLibrary() {
     const ids = selectionState.ids;
     if (ids.length === 0) return;
@@ -33,37 +30,55 @@
   }
 
   async function handleRemoveFromPlaylist() {
-    if (!entry) return;
-    await playlistState.removeEntries([entry.id]);
+    const ids = playlistSelectionState.ids;
+    if (ids.length === 0) return;
+    await playlistState.removeEntries(ids);
+    playlistSelectionState.clear();
     onclose();
   }
 
   function handleProperties() {
-    showProperties = true;
     onclose();
-    // Properties dialog is opened via a dispatched event — handled by parent
-    const event = new CustomEvent("show-properties", {
-      detail: { trackId: selectionState.ids[0] ?? entry?.track.id },
-      bubbles: true,
-    });
-    document.dispatchEvent(event);
+    let trackId: number | undefined;
+    if (context === "search") {
+      trackId = selectionState.ids[0];
+    } else {
+      trackId = entry?.track.id;
+    }
+    if (trackId) {
+      document.dispatchEvent(
+        new CustomEvent("show-properties", { detail: { trackId }, bubbles: true }),
+      );
+    }
   }
 
   function handleTag() {
-    const event = new CustomEvent("show-tag-dialog", {
-      detail: { trackIds: selectionState.ids },
-      bubbles: true,
-    });
-    document.dispatchEvent(event);
+    let trackIds: number[];
+    if (context === "search") {
+      trackIds = selectionState.ids;
+    } else {
+      // For playlist context, get track IDs from selected entries
+      const selectedEntryIds = playlistSelectionState.ids;
+      const selectedEntries = (playlistState.entries ?? []).filter((e) =>
+        selectedEntryIds.includes(e.id),
+      );
+      trackIds = selectedEntries.map((e) => e.track_id);
+    }
+    document.dispatchEvent(
+      new CustomEvent("show-tag-dialog", { detail: { trackIds }, bubbles: true }),
+    );
     onclose();
   }
 
-  // Position the menu to stay within viewport
   let menuStyle = $derived.by(() => {
     const maxX = typeof window !== "undefined" ? window.innerWidth - 180 : x;
     const maxY = typeof window !== "undefined" ? window.innerHeight - 120 : y;
     return `left: ${Math.min(x, maxX)}px; top: ${Math.min(y, maxY)}px;`;
   });
+
+  let selectionCount = $derived(
+    context === "search" ? selectionState.count : playlistSelectionState.count,
+  );
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -91,7 +106,7 @@
       onclick={handleRemoveFromLibrary}
     >
       Remove from library
-      {#if selectionState.count > 1}({selectionState.count}){/if}
+      {#if selectionCount > 1}({selectionCount}){/if}
     </button>
   {:else if context === "playlist"}
     <button
@@ -99,6 +114,7 @@
       onclick={handleRemoveFromPlaylist}
     >
       Remove from playlist
+      {#if selectionCount > 1}({selectionCount}){/if}
     </button>
   {/if}
 </div>
