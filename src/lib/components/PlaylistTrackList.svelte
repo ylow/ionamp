@@ -74,7 +74,12 @@
   }
 </script>
 
-<div class="overflow-y-auto h-full">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+  class="overflow-y-auto h-full"
+  ondragover={(e) => { e.preventDefault(); e.dataTransfer!.dropEffect = "copy"; }}
+  ondrop={(e) => handleDrop(e, entries.length)}
+>
   {#each entries as entry, i}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
