@@ -1,4 +1,5 @@
-use rand::Rng;
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,8 +19,8 @@ pub fn cluster_energy_vectors(vectors: &[Vec<f32>]) -> Vec<Cluster> {
     let k = select_k(vectors.len());
     let dim = vectors[0].len();
 
-    // K-means++ initialization
-    let mut rng = rand::thread_rng();
+    // Fixed seed for deterministic clustering
+    let mut rng = StdRng::seed_from_u64(42);
     let mut centroids = kmeans_plus_plus_init(vectors, k, &mut rng);
 
     let mut assignments = vec![0usize; vectors.len()];
