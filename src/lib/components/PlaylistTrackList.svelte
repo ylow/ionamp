@@ -24,7 +24,9 @@
 
   function handleDragOver(e: DragEvent, index: number) {
     e.preventDefault();
-    e.dataTransfer!.dropEffect = "move";
+    // Intra-list reorder uses "move", cross-pane from search uses "copy"
+    const isReorder = e.dataTransfer?.types.includes("text/x-entry-id");
+    e.dataTransfer!.dropEffect = isReorder ? "move" : "copy";
     dragOverIndex = index;
   }
 
