@@ -22,6 +22,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
             db: Mutex::new(conn),
+            db_path: db_path.clone(),
         })
         .invoke_handler(tauri::generate_handler![
             commands::import_files,

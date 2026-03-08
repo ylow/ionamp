@@ -17,17 +17,25 @@ fn map_err(e: impl std::fmt::Display) -> String {
 // ── Import ──────────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub fn import_files(
+pub async fn import_files(
     state: State<'_, AppState>,
     paths: Vec<String>,
     on_event: Channel<ImportEvent>,
 ) -> CmdResult<()> {
+    let db_path = state.db_path.clone();
     let path_bufs: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
-    let files = import::scan_audio_files(&path_bufs);
-    let conn = state.db.lock().map_err(map_err)?;
-    import::run_import(&conn, &files, |event| {
-        let _ = on_event.send(event);
+
+    // Run on a blocking thread with its own DB connection so channel
+    // events can be delivered to the frontend while import is in progress.
+    tauri::async_runtime::spawn_blocking(move || {
+        let conn = crate::db::open_db(&db_path).map_err(map_err)?;
+        let files = import::scan_audio_files(&path_bufs);
+        import::run_import(&conn, &files, |event| {
+            let _ = on_event.send(event);
+        })
     })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 // ── Search ──────────────────────────────────────────────────────────────
