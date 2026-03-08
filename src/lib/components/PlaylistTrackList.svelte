@@ -36,6 +36,7 @@
 
   function handleDrop(e: DragEvent, dropIndex: number) {
     e.preventDefault();
+    e.stopPropagation();
     dragOverIndex = null;
 
     const types = Array.from(e.dataTransfer?.types ?? []);
