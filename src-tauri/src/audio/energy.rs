@@ -130,22 +130,6 @@ fn normalize_vec(v: &mut [f32]) {
     }
 }
 
-pub fn energy_to_bytes(energy: &[f32]) -> Vec<u8> {
-    energy.iter().flat_map(|f| f.to_le_bytes()).collect()
-}
-
-pub fn energy_from_bytes(bytes: &[u8]) -> Option<Vec<f32>> {
-    if bytes.len() % 4 != 0 {
-        return None;
-    }
-    Some(
-        bytes
-            .chunks_exact(4)
-            .map(|chunk| f32::from_le_bytes(chunk.try_into().unwrap()))
-            .collect(),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -189,6 +173,7 @@ mod tests {
 
     #[test]
     fn test_energy_bytes_roundtrip() {
+        use crate::db::tracks::{energy_from_bytes, energy_to_bytes};
         let original = vec![0.0f32, 0.25, 0.5, 0.75, 1.0];
         let bytes = energy_to_bytes(&original);
         let restored = energy_from_bytes(&bytes).unwrap();

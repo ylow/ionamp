@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use tauri::{ipc::Channel, State};
 
-use crate::audio::kmeans::{cluster_energy_vectors, Cluster};
+use crate::audio::kmeans::cluster_energy_vectors;
 use crate::db::{playlists, search, tags, tracks};
 use crate::import::{self, ImportEvent};
 use crate::models::*;

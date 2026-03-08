@@ -1,6 +1,5 @@
 use rusqlite::{params, Connection, Result};
 
-use super::tracks::row_to_track;
 use crate::models::{Playlist, PlaylistEntry};
 
 pub fn create_playlist(conn: &Connection, name: &str) -> Result<i64> {
