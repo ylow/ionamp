@@ -47,7 +47,7 @@
 
   function handleDragOver(e: DragEvent, index: number) {
     e.preventDefault();
-    const isReorder = e.dataTransfer?.types.includes("text/x-entry-id");
+    const isReorder = e.dataTransfer?.types.includes("text/x-entry-ids");
     e.dataTransfer!.dropEffect = isReorder ? "move" : "copy";
     dragOverIndex = index;
   }
@@ -61,16 +61,30 @@
     e.stopPropagation();
     dragOverIndex = null;
 
-    const data = e.dataTransfer?.getData("text/x-entry-id");
+    const data = e.dataTransfer?.getData("text/x-entry-ids");
     if (data) {
-      const dragEntryId = parseInt(data);
-      const currentOrder = entries.map((e) => e.id);
-      const fromIndex = currentOrder.indexOf(dragEntryId);
-      if (fromIndex === -1) return;
+      const dragEntryIds: number[] = JSON.parse(data);
+      const dragSet = new Set(dragEntryIds);
 
-      const newOrder = [...currentOrder];
-      newOrder.splice(fromIndex, 1);
-      newOrder.splice(dropIndex, 0, dragEntryId);
+      // Build new order: remove dragged entries, then insert them at drop position
+      const remaining = entries.filter((e) => !dragSet.has(e.id));
+      const dragged = entries.filter((e) => dragSet.has(e.id));
+
+      // Find insert position in the remaining list
+      let insertAt: number;
+      if (dropIndex >= entries.length) {
+        insertAt = remaining.length;
+      } else {
+        const dropEntryId = entries[dropIndex].id;
+        const idx = remaining.findIndex((e) => e.id === dropEntryId);
+        insertAt = idx === -1 ? remaining.length : idx;
+      }
+
+      const newOrder = [
+        ...remaining.slice(0, insertAt).map((e) => e.id),
+        ...dragged.map((e) => e.id),
+        ...remaining.slice(insertAt).map((e) => e.id),
+      ];
       playlistState.reorder(newOrder);
       return;
     }
@@ -87,7 +101,12 @@
   }
 
   function handleEntryDragStart(e: DragEvent, entry: PlaylistEntry) {
-    e.dataTransfer?.setData("text/x-entry-id", entry.id.toString());
+    // If dragged entry isn't selected, select only it
+    if (!playlistSelectionState.isSelected(entry.id)) {
+      playlistSelectionState.select(entry.id);
+    }
+    const dragIds = playlistSelectionState.ids;
+    e.dataTransfer?.setData("text/x-entry-ids", JSON.stringify(dragIds));
     e.dataTransfer!.effectAllowed = "move";
   }
 
