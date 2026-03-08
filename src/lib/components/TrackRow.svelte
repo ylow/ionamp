@@ -46,6 +46,7 @@
       selectionState.select(track.id);
     }
     const ids = selectionState.ids;
+    console.log("[TrackRow] dragStart, ids:", ids);
     e.dataTransfer?.setData("application/json", JSON.stringify(ids));
     e.dataTransfer!.effectAllowed = "copy";
   }

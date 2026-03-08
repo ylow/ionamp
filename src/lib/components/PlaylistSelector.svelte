@@ -1,39 +1,54 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { playlistState } from "$lib/stores/playlist.svelte";
 
   let newName = $state("");
+  let selectValue = $state("");
+
+  onMount(() => {
+    console.log("[PlaylistSelector] mounted, loading playlists");
+    playlistState.loadPlaylists();
+  });
+
+  // Sync selectValue from store
+  $effect(() => {
+    const storeVal = playlistState.selectedPlaylistId;
+    const newVal = storeVal?.toString() ?? "";
+    console.log("[PlaylistSelector] syncing selectValue from store:", storeVal, "->", newVal);
+    selectValue = newVal;
+  });
 
   function handleSelect(e: Event) {
     const value = (e.target as HTMLSelectElement).value;
+    console.log("[PlaylistSelector] handleSelect:", value);
+    selectValue = value;
     playlistState.selectPlaylist(value ? parseInt(value) : null);
   }
 
   async function handleCreate() {
     const name = newName.trim();
     if (!name) return;
+    console.log("[PlaylistSelector] creating playlist:", name);
     await playlistState.create(name);
     newName = "";
   }
 
   async function handleDelete() {
     if (playlistState.selectedPlaylistId === null) return;
+    console.log("[PlaylistSelector] deleting playlist:", playlistState.selectedPlaylistId);
     await playlistState.remove(playlistState.selectedPlaylistId);
   }
-
-  $effect(() => {
-    playlistState.loadPlaylists();
-  });
 </script>
 
 <div class="flex items-center gap-1">
   <select
-    value={playlistState.selectedPlaylistId?.toString() ?? ""}
+    bind:value={selectValue}
     onchange={handleSelect}
     class="flex-1 px-1 py-0.5 text-xs bg-neutral-800 border border-neutral-600 rounded text-neutral-300"
   >
     <option value="">Select playlist...</option>
     {#each playlistState.playlists as playlist}
-      <option value={playlist.id}>{playlist.name}</option>
+      <option value={playlist.id.toString()}>{playlist.name}</option>
     {/each}
   </select>
   <button

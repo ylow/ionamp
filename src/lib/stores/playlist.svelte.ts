@@ -96,12 +96,17 @@ class PlaylistState {
   }
 
   async addTracks(trackIds: number[]) {
-    if (this.selectedPlaylistId === null) return;
+    console.log("[PlaylistState] addTracks, playlistId:", this.selectedPlaylistId, "trackIds:", trackIds);
+    if (this.selectedPlaylistId === null) {
+      console.warn("[PlaylistState] addTracks: no playlist selected");
+      return;
+    }
     try {
       await addToPlaylist(this.selectedPlaylistId, trackIds);
+      console.log("[PlaylistState] addTracks: success, reloading entries");
       await this.loadEntries();
     } catch (e) {
-      console.error("Failed to add tracks:", e);
+      console.error("[PlaylistState] addTracks failed:", e);
     }
   }
 

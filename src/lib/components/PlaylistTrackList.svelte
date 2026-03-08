@@ -38,6 +38,9 @@
     e.preventDefault();
     dragOverIndex = null;
 
+    const types = Array.from(e.dataTransfer?.types ?? []);
+    console.log("[PlaylistTrackList] drop at index", dropIndex, "types:", types);
+
     const data = e.dataTransfer?.getData("text/x-entry-id");
     if (data) {
       // Intra-list reorder

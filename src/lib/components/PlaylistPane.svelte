@@ -21,13 +21,16 @@
 
   function handleDrop(e: DragEvent) {
     e.preventDefault();
+    const types = Array.from(e.dataTransfer?.types ?? []);
     const data = e.dataTransfer?.getData("application/json");
+    console.log("[PlaylistPane] drop, types:", types, "data:", data, "selectedPlaylistId:", playlistState.selectedPlaylistId);
     if (data && playlistState.selectedPlaylistId !== null) {
       try {
         const trackIds: number[] = JSON.parse(data);
+        console.log("[PlaylistPane] adding tracks:", trackIds);
         playlistState.addTracks(trackIds);
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error("[PlaylistPane] drop parse error:", err);
       }
     }
   }
