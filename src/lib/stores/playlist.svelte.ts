@@ -16,10 +16,7 @@ class PlaylistState {
   selectedPlaylistId = $state<number | null>(null);
   entries = $state<PlaylistEntry[]>([]);
   loading = $state(false);
-
-  get maxEnergy(): number {
-    return maxEnergyOfTracks(this.entries.map((e) => e.track));
-  }
+  maxEnergy = $state(0);
 
   get selectedPlaylist(): Playlist | null {
     return (
@@ -49,6 +46,7 @@ class PlaylistState {
     this.loading = true;
     try {
       this.entries = await getPlaylistTracks(this.selectedPlaylistId);
+      this.maxEnergy = maxEnergyOfTracks(this.entries.map((e) => e.track));
     } catch (e) {
       console.error("Failed to load playlist tracks:", e);
     } finally {

@@ -60,6 +60,9 @@ class SearchState {
         this.results = result.groups;
         this.totalCount = result.total_count;
       }
+      this.maxEnergy = maxEnergyOfTracks(
+        this.results.flatMap((g) => g.tracks),
+      );
     } catch (e) {
       console.error("Search error:", e);
     } finally {
