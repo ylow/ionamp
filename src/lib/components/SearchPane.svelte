@@ -50,6 +50,7 @@
     {:else}
       <TrackList
         groups={searchState.results}
+        maxEnergy={searchState.maxEnergy}
         oncontextmenu={handleContextMenu}
       />
     {/if}

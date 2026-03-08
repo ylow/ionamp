@@ -16,6 +16,18 @@ class PlaylistState {
   entries = $state<PlaylistEntry[]>([]);
   loading = $state(false);
 
+  get maxEnergy(): number {
+    let max = 0;
+    for (const entry of this.entries) {
+      if (entry.track.energy_vector) {
+        for (const v of entry.track.energy_vector) {
+          if (v > max) max = v;
+        }
+      }
+    }
+    return max;
+  }
+
   get selectedPlaylist(): Playlist | null {
     return (
       this.playlists.find((p) => p.id === this.selectedPlaylistId) ?? null

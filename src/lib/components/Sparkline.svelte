@@ -1,11 +1,13 @@
 <script lang="ts">
   let {
     energyVector,
+    maxValue = 0,
     width = 80,
     height = 20,
     color = "#60a5fa",
   }: {
     energyVector: number[] | null;
+    maxValue?: number;
     width?: number;
     height?: number;
     color?: string;
@@ -15,11 +17,13 @@
     if (!energyVector || energyVector.length === 0) return "";
     const points = energyVector;
     const stepX = width / (points.length - 1 || 1);
+    const scale = maxValue > 0 ? maxValue : Math.max(...points, 1e-10);
 
     let d = `M 0 ${height}`;
     for (let i = 0; i < points.length; i++) {
       const x = i * stepX;
-      const y = height - points[i] * height;
+      const normalized = Math.min(points[i] / scale, 1);
+      const y = height - normalized * height;
       d += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
     }
     d += ` L ${width} ${height} Z`;

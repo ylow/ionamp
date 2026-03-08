@@ -5,9 +5,11 @@
 
   let {
     entries,
+    maxEnergy = 0,
     oncontextmenu,
   }: {
     entries: PlaylistEntry[];
+    maxEnergy?: number;
     oncontextmenu?: (e: MouseEvent, entry: PlaylistEntry) => void;
   } = $props();
 
@@ -96,7 +98,7 @@
       <span class="w-10 text-right text-neutral-500">
         {formatDuration(entry.track.duration_secs)}
       </span>
-      <Sparkline energyVector={entry.track.energy_vector} width={60} height={14} />
+      <Sparkline energyVector={entry.track.energy_vector} maxValue={maxEnergy} width={60} height={14} />
     </div>
   {/each}
 

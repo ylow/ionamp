@@ -65,6 +65,7 @@
     {:else}
       <PlaylistTrackList
         entries={playlistState.entries}
+        maxEnergy={playlistState.maxEnergy}
         oncontextmenu={handleContextMenu}
       />
     {/if}

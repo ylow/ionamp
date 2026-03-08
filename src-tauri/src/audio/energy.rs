@@ -2,6 +2,9 @@ use realfft::RealFftPlanner;
 
 const ENERGY_VECTOR_LEN: usize = 128;
 
+/// Computes a 128-point energy vector with absolute (unnormalized) values.
+/// Values are comparable across tracks. Normalization should be done at
+/// render time across all displayed tracks.
 pub fn compute_energy_vector(samples: &[f32]) -> Vec<f32> {
     if samples.is_empty() {
         return vec![0.0; ENERGY_VECTOR_LEN];
@@ -15,13 +18,8 @@ pub fn compute_energy_vector(samples: &[f32]) -> Vec<f32> {
             let idx = i * ENERGY_VECTOR_LEN / samples.len();
             result[idx] += s * s;
         }
-        normalize_vec(&mut result);
         return result;
     }
-
-    let mut rms_values = Vec::with_capacity(ENERGY_VECTOR_LEN);
-    let mut centroid_values = Vec::with_capacity(ENERGY_VECTOR_LEN);
-    let mut onset_values = Vec::with_capacity(ENERGY_VECTOR_LEN);
 
     // FFT planner — pick a power-of-2 window size for efficiency
     let fft_size = segment_len.next_power_of_two().max(16);
@@ -29,45 +27,33 @@ pub fn compute_energy_vector(samples: &[f32]) -> Vec<f32> {
     let fft = planner.plan_fft_forward(fft_size);
     let mut fft_input = vec![0.0f32; fft_size];
     let mut fft_output = fft.make_output_vec();
+    let spectrum_len = fft_output.len();
+
+    let mut result = Vec::with_capacity(ENERGY_VECTOR_LEN);
 
     for seg_idx in 0..ENERGY_VECTOR_LEN {
         let start = seg_idx * segment_len;
         let end = (start + segment_len).min(samples.len());
         let segment = &samples[start..end];
 
-        // RMS
+        // RMS — absolute, naturally in [0, ~1] for float audio
         let rms = rms_of(segment);
-        rms_values.push(rms);
 
-        // Spectral centroid via FFT
+        // Spectral centroid via FFT, normalized by spectrum length to [0, 1]
         fft_input.fill(0.0);
         for (i, &s) in segment.iter().enumerate().take(fft_size) {
             fft_input[i] = s;
         }
         let _ = fft.process(&mut fft_input, &mut fft_output);
+        let centroid = spectral_centroid(&fft_output) / spectrum_len.max(1) as f32;
 
-        let centroid = spectral_centroid(&fft_output);
-        centroid_values.push(centroid);
-
-        // Onset strength: mean absolute difference of sub-window RMS values
+        // Onset strength — absolute
         let onset = onset_strength(segment);
-        onset_values.push(onset);
+
+        // Blend with absolute values — no normalization
+        result.push(0.5 * rms + 0.3 * centroid + 0.2 * onset);
     }
 
-    // Normalize each component to [0, 1]
-    normalize_vec(&mut rms_values);
-    normalize_vec(&mut centroid_values);
-    normalize_vec(&mut onset_values);
-
-    // Blend: 0.5*RMS + 0.3*centroid + 0.2*onset
-    let mut result: Vec<f32> = rms_values
-        .iter()
-        .zip(centroid_values.iter())
-        .zip(onset_values.iter())
-        .map(|((&r, &c), &o)| 0.5 * r + 0.3 * c + 0.2 * o)
-        .collect();
-
-    normalize_vec(&mut result);
     result
 }
 
@@ -121,15 +107,6 @@ fn onset_strength(segment: &[f32]) -> f32 {
     diffs / (sub_rms.len() - 1) as f32
 }
 
-fn normalize_vec(v: &mut [f32]) {
-    let max = v.iter().cloned().fold(0.0f32, f32::max);
-    if max > 1e-10 {
-        for x in v.iter_mut() {
-            *x /= max;
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -142,14 +119,14 @@ mod tests {
     }
 
     #[test]
-    fn test_energy_vector_normalized() {
+    fn test_energy_vector_non_negative() {
         let samples: Vec<f32> = (0..44100).map(|i| (i as f32 * 0.01).sin()).collect();
         let energy = compute_energy_vector(&samples);
         for &v in &energy {
-            assert!(v >= 0.0 && v <= 1.0, "value {} not in [0, 1]", v);
+            assert!(v >= 0.0, "value {} is negative", v);
         }
-        // At least one value should be 1.0 (max after normalization)
-        assert!(energy.iter().any(|&v| (v - 1.0).abs() < 0.01));
+        // Should have some non-zero energy
+        assert!(energy.iter().any(|&v| v > 0.0));
     }
 
     #[test]
@@ -163,12 +140,20 @@ mod tests {
     }
 
     #[test]
-    fn test_loud_signal_has_high_energy() {
+    fn test_loud_vs_quiet_signal() {
         let loud: Vec<f32> = (0..44100).map(|i| (i as f32 * 0.1).sin() * 0.9).collect();
-        let energy = compute_energy_vector(&loud);
-        let avg: f32 = energy.iter().sum::<f32>() / energy.len() as f32;
-        // A loud uniform signal should have high average energy
-        assert!(avg > 0.3, "avg energy {} too low for loud signal", avg);
+        let quiet: Vec<f32> = (0..44100).map(|i| (i as f32 * 0.1).sin() * 0.1).collect();
+        let loud_energy = compute_energy_vector(&loud);
+        let quiet_energy = compute_energy_vector(&quiet);
+        let loud_avg: f32 = loud_energy.iter().sum::<f32>() / loud_energy.len() as f32;
+        let quiet_avg: f32 = quiet_energy.iter().sum::<f32>() / quiet_energy.len() as f32;
+        // Loud signal should have higher absolute energy than quiet one
+        assert!(
+            loud_avg > quiet_avg * 2.0,
+            "loud_avg ({}) should be much greater than quiet_avg ({})",
+            loud_avg,
+            quiet_avg
+        );
     }
 
     #[test]

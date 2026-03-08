@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Users/ylow/repos/ionamp log --oneline -10)"
+    ]
+  }
+}

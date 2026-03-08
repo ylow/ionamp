@@ -5,9 +5,11 @@
 
   let {
     groups,
+    maxEnergy = 0,
     oncontextmenu,
   }: {
     groups: TrackGroup[];
+    maxEnergy?: number;
     oncontextmenu?: (e: MouseEvent, track: Track) => void;
   } = $props();
 
@@ -48,7 +50,7 @@
         </button>
         {#if !collapsedGroups.has(group.key)}
           {#each group.tracks as track}
-            <TrackRow {track} {allTrackIds} {oncontextmenu} />
+            <TrackRow {track} {allTrackIds} {maxEnergy} {oncontextmenu} />
           {/each}
         {/if}
       </div>
@@ -57,7 +59,7 @@
 {:else}
   <VirtualList items={flatTracks} itemHeight={24}>
     {#snippet row(item: Track)}
-      <TrackRow track={item} {allTrackIds} {oncontextmenu} />
+      <TrackRow track={item} {allTrackIds} {maxEnergy} {oncontextmenu} />
     {/snippet}
   </VirtualList>
 {/if}
