@@ -1,0 +1,235 @@
+use std::path::PathBuf;
+
+use tauri::{ipc::Channel, State};
+
+use crate::audio::kmeans::{cluster_energy_vectors, Cluster};
+use crate::db::{playlists, search, tags, tracks};
+use crate::import::{self, ImportEvent};
+use crate::models::*;
+use crate::state::AppState;
+
+type CmdResult<T> = Result<T, String>;
+
+fn map_err(e: impl std::fmt::Display) -> String {
+    e.to_string()
+}
+
+// ── Import ──────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn import_files(
+    state: State<'_, AppState>,
+    paths: Vec<String>,
+    on_event: Channel<ImportEvent>,
+) -> CmdResult<()> {
+    let path_bufs: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
+    let files = import::scan_audio_files(&path_bufs);
+    let conn = state.db.lock().map_err(map_err)?;
+    import::run_import(&conn, &files, |event| {
+        let _ = on_event.send(event);
+    })
+}
+
+// ── Search ──────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn search_tracks(
+    state: State<'_, AppState>,
+    query: search::SearchQuery,
+) -> CmdResult<search::SearchResult> {
+    let conn = state.db.lock().map_err(map_err)?;
+    search::search_tracks(&conn, &query).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn get_filter_options(state: State<'_, AppState>) -> CmdResult<search::FilterOptions> {
+    let conn = state.db.lock().map_err(map_err)?;
+    search::get_filter_options(&conn).map_err(map_err)
+}
+
+// ── Tracks ──────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn get_track(state: State<'_, AppState>, id: i64) -> CmdResult<Option<Track>> {
+    let conn = state.db.lock().map_err(map_err)?;
+    tracks::get_track_by_id(&conn, id).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn delete_tracks(state: State<'_, AppState>, ids: Vec<i64>) -> CmdResult<()> {
+    let conn = state.db.lock().map_err(map_err)?;
+    for id in ids {
+        tracks::delete_track(&conn, id).map_err(map_err)?;
+    }
+    Ok(())
+}
+
+// ── Playlists ───────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn list_playlists(state: State<'_, AppState>) -> CmdResult<Vec<Playlist>> {
+    let conn = state.db.lock().map_err(map_err)?;
+    playlists::list_playlists(&conn).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn create_playlist(state: State<'_, AppState>, name: String) -> CmdResult<i64> {
+    let conn = state.db.lock().map_err(map_err)?;
+    playlists::create_playlist(&conn, &name).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn rename_playlist(state: State<'_, AppState>, id: i64, new_name: String) -> CmdResult<()> {
+    let conn = state.db.lock().map_err(map_err)?;
+    playlists::rename_playlist(&conn, id, &new_name).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn delete_playlist(state: State<'_, AppState>, id: i64) -> CmdResult<()> {
+    let conn = state.db.lock().map_err(map_err)?;
+    playlists::delete_playlist(&conn, id).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn get_playlist_tracks(
+    state: State<'_, AppState>,
+    playlist_id: i64,
+) -> CmdResult<Vec<PlaylistEntry>> {
+    let conn = state.db.lock().map_err(map_err)?;
+    playlists::get_playlist_tracks(&conn, playlist_id).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn add_to_playlist(
+    state: State<'_, AppState>,
+    playlist_id: i64,
+    track_ids: Vec<i64>,
+) -> CmdResult<()> {
+    let conn = state.db.lock().map_err(map_err)?;
+    playlists::add_tracks_to_playlist(&conn, playlist_id, &track_ids).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn remove_from_playlist(state: State<'_, AppState>, entry_ids: Vec<i64>) -> CmdResult<()> {
+    let conn = state.db.lock().map_err(map_err)?;
+    playlists::remove_from_playlist(&conn, &entry_ids).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn reorder_playlist(
+    state: State<'_, AppState>,
+    playlist_id: i64,
+    entry_ids: Vec<i64>,
+) -> CmdResult<()> {
+    let conn = state.db.lock().map_err(map_err)?;
+    playlists::reorder_playlist(&conn, playlist_id, &entry_ids).map_err(map_err)
+}
+
+// ── Tags ────────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn list_tag_categories(state: State<'_, AppState>) -> CmdResult<Vec<TagCategory>> {
+    let conn = state.db.lock().map_err(map_err)?;
+    tags::list_categories(&conn).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn create_tag_category(state: State<'_, AppState>, name: String) -> CmdResult<i64> {
+    let conn = state.db.lock().map_err(map_err)?;
+    tags::create_category(&conn, &name).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn delete_tag_category(state: State<'_, AppState>, id: i64) -> CmdResult<()> {
+    let conn = state.db.lock().map_err(map_err)?;
+    tags::delete_category(&conn, id).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn tag_tracks(
+    state: State<'_, AppState>,
+    track_ids: Vec<i64>,
+    tag_value_id: i64,
+) -> CmdResult<()> {
+    let conn = state.db.lock().map_err(map_err)?;
+    tags::tag_tracks(&conn, &track_ids, tag_value_id).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn untag_tracks(
+    state: State<'_, AppState>,
+    track_ids: Vec<i64>,
+    tag_value_id: i64,
+) -> CmdResult<()> {
+    let conn = state.db.lock().map_err(map_err)?;
+    tags::untag_tracks(&conn, &track_ids, tag_value_id).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn get_track_tags(state: State<'_, AppState>, track_id: i64) -> CmdResult<Vec<TagValue>> {
+    let conn = state.db.lock().map_err(map_err)?;
+    tags::get_tags_for_track(&conn, track_id).map_err(map_err)
+}
+
+// ── Energy Clustering ───────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn cluster_by_energy(
+    state: State<'_, AppState>,
+    query: search::SearchQuery,
+) -> CmdResult<Vec<EnergyClusterGroup>> {
+    let conn = state.db.lock().map_err(map_err)?;
+
+    // Search with no grouping to get all matching tracks
+    let mut flat_query = query;
+    flat_query.group_by = None;
+    flat_query.limit = None;
+    flat_query.offset = None;
+
+    let result = search::search_tracks(&conn, &flat_query).map_err(map_err)?;
+    let all_tracks: Vec<Track> = result.groups.into_iter().flat_map(|g| g.tracks).collect();
+
+    // Collect energy vectors
+    let mut vectors: Vec<Vec<f32>> = Vec::new();
+    let mut indices: Vec<usize> = Vec::new(); // track index in all_tracks
+
+    for (i, track) in all_tracks.iter().enumerate() {
+        if let Some(ref ev) = track.energy_vector {
+            vectors.push(ev.clone());
+            indices.push(i);
+        }
+    }
+
+    if vectors.len() < 2 {
+        // Not enough energy data to cluster, return all as one group
+        return Ok(vec![EnergyClusterGroup {
+            label: "All Tracks".to_string(),
+            tracks: all_tracks,
+        }]);
+    }
+
+    let clusters = cluster_energy_vectors(&vectors);
+
+    let groups: Vec<EnergyClusterGroup> = clusters
+        .into_iter()
+        .map(|c| {
+            let cluster_tracks: Vec<Track> = c
+                .member_indices
+                .iter()
+                .map(|&mi| all_tracks[indices[mi]].clone())
+                .collect();
+            EnergyClusterGroup {
+                label: c.label,
+                tracks: cluster_tracks,
+            }
+        })
+        .collect();
+
+    Ok(groups)
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct EnergyClusterGroup {
+    pub label: String,
+    pub tracks: Vec<Track>,
+}
