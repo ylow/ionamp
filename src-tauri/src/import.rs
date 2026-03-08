@@ -5,7 +5,7 @@ use serde::Serialize;
 use walkdir::WalkDir;
 
 use crate::audio::decode::decode_to_mono_pcm;
-use crate::audio::energy::compute_energy_vector;
+use crate::audio::energy::compute_energy_components;
 use crate::audio::metadata::{extract_metadata, is_supported_audio};
 use crate::db::tracks::{insert_track, track_exists_by_path};
 
@@ -102,8 +102,10 @@ pub fn run_import(
         // Decode and compute energy
         match decode_to_mono_pcm(path) {
             Ok(audio) => {
-                let energy = compute_energy_vector(&audio.samples);
-                new_track.energy_vector = Some(energy);
+                let ec = compute_energy_components(&audio.samples);
+                new_track.energy_rms = Some(ec.rms);
+                new_track.energy_centroid = Some(ec.centroid);
+                new_track.energy_onset = Some(ec.onset);
             }
             Err(e) => {
                 // Still import the track, just without energy data

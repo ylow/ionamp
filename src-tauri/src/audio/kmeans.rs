@@ -171,11 +171,14 @@ fn nearest_centroid(point: &[f32], centroids: &[Vec<f32>]) -> usize {
         .unwrap_or(0)
 }
 
+/// Average of the RMS portion of the centroid (first 128 dims for a 384-dim
+/// concatenated vector, or the entire vector if <= 128 dims).
 fn avg_energy(centroid: &[f32]) -> f32 {
     if centroid.is_empty() {
         return 0.0;
     }
-    centroid.iter().sum::<f32>() / centroid.len() as f32
+    let rms_portion = &centroid[..centroid.len().min(128)];
+    rms_portion.iter().sum::<f32>() / rms_portion.len() as f32
 }
 
 #[cfg(test)]

@@ -62,7 +62,9 @@ pub fn extract_metadata(path: &Path) -> Result<NewTrack, MetadataError> {
         bitrate: properties.audio_bitrate().map(|br| br as i32),
         format,
         file_size: Some(file_meta.len() as i64),
-        energy_vector: None,
+        energy_rms: None,
+        energy_centroid: None,
+        energy_onset: None,
     })
 }
 

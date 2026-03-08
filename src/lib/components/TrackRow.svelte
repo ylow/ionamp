@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Track } from "$lib/types";
   import { selectionState } from "$lib/stores/selection.svelte";
+  import { blendEnergy } from "$lib/utils/energy";
   import Sparkline from "./Sparkline.svelte";
 
   let {
@@ -75,5 +76,5 @@
   <span class="w-12 text-right text-neutral-500">
     {formatDuration(track.duration_secs)}
   </span>
-  <Sparkline energyVector={track.energy_vector} maxValue={maxEnergy} width={80} height={16} />
+  <Sparkline energyVector={blendEnergy(track)} maxValue={maxEnergy} width={80} height={16} />
 </div>

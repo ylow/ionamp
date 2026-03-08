@@ -9,6 +9,7 @@ import {
   reorderPlaylist,
 } from "$lib/api";
 import type { Playlist, PlaylistEntry } from "$lib/types";
+import { maxEnergyOfTracks } from "$lib/utils/energy";
 
 class PlaylistState {
   playlists = $state<Playlist[]>([]);
@@ -17,15 +18,7 @@ class PlaylistState {
   loading = $state(false);
 
   get maxEnergy(): number {
-    let max = 0;
-    for (const entry of this.entries) {
-      if (entry.track.energy_vector) {
-        for (const v of entry.track.energy_vector) {
-          if (v > max) max = v;
-        }
-      }
-    }
-    return max;
+    return maxEnergyOfTracks(this.entries.map((e) => e.track));
   }
 
   get selectedPlaylist(): Playlist | null {

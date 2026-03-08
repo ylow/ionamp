@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getTrack, getTrackTags } from "$lib/api";
   import type { Track, TagValue } from "$lib/types";
+  import { blendEnergy } from "$lib/utils/energy";
   import Sparkline from "./Sparkline.svelte";
 
   let {
@@ -135,14 +136,30 @@
         {/if}
 
         <div class="border-t border-neutral-700 my-2"></div>
-        <div>
-          <span class="text-neutral-400">Energy Profile</span>
-          <div class="mt-1">
-            <Sparkline
-              energyVector={track.energy_vector}
-              width={350}
-              height={60}
-            />
+        <div class="space-y-2">
+          <div>
+            <span class="text-neutral-400">Energy (blended)</span>
+            <div class="mt-0.5">
+              <Sparkline energyVector={blendEnergy(track)} width={350} height={40} color="#60a5fa" />
+            </div>
+          </div>
+          <div>
+            <span class="text-neutral-400">RMS (loudness)</span>
+            <div class="mt-0.5">
+              <Sparkline energyVector={track.energy_rms} width={350} height={30} color="#f87171" />
+            </div>
+          </div>
+          <div>
+            <span class="text-neutral-400">Spectral Centroid (brightness)</span>
+            <div class="mt-0.5">
+              <Sparkline energyVector={track.energy_centroid} width={350} height={30} color="#fbbf24" />
+            </div>
+          </div>
+          <div>
+            <span class="text-neutral-400">Onset Strength (rhythm)</span>
+            <div class="mt-0.5">
+              <Sparkline energyVector={track.energy_onset} width={350} height={30} color="#34d399" />
+            </div>
           </div>
         </div>
       </div>

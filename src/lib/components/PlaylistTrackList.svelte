@@ -3,6 +3,7 @@
   import { playlistState } from "$lib/stores/playlist.svelte";
   import { playlistSelectionState } from "$lib/stores/selection.svelte";
   import { playbackState } from "$lib/stores/playback.svelte";
+  import { blendEnergy } from "$lib/utils/energy";
   import Sparkline from "./Sparkline.svelte";
 
   let {
@@ -161,7 +162,7 @@
       <span class="w-10 text-right text-neutral-500">
         {formatDuration(entry.track.duration_secs)}
       </span>
-      <Sparkline energyVector={entry.track.energy_vector} maxValue={maxEnergy} width={60} height={14} />
+      <Sparkline energyVector={blendEnergy(entry.track)} maxValue={maxEnergy} width={60} height={14} />
     </div>
   {/each}
 

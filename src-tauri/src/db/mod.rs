@@ -41,6 +41,9 @@ fn run_migrations(conn: &Connection) -> Result<()> {
             format        TEXT,
             file_size     INTEGER,
             energy_vector BLOB,
+            energy_rms      BLOB,
+            energy_centroid BLOB,
+            energy_onset    BLOB,
             created_at    TEXT DEFAULT (datetime('now'))
         );
 
@@ -131,6 +134,20 @@ fn run_migrations(conn: &Connection) -> Result<()> {
                 INSERT INTO tracks_fts(rowid, title, artist, album, genre)
                 VALUES (new.id, new.title, new.artist, new.album, new.genre);
             END;
+            ",
+        )?;
+    }
+
+    // Migration: add energy component columns for existing databases
+    let has_energy_rms: bool = conn
+        .prepare("SELECT energy_rms FROM tracks LIMIT 0")
+        .is_ok();
+    if !has_energy_rms {
+        conn.execute_batch(
+            "
+            ALTER TABLE tracks ADD COLUMN energy_rms BLOB;
+            ALTER TABLE tracks ADD COLUMN energy_centroid BLOB;
+            ALTER TABLE tracks ADD COLUMN energy_onset BLOB;
             ",
         )?;
     }

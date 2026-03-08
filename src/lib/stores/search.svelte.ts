@@ -1,4 +1,5 @@
 import { searchTracks, getFilterOptions, clusterByEnergy } from "$lib/api";
+import { maxEnergyOfTracks } from "$lib/utils/energy";
 import type {
   SearchQuery,
   SearchResult,
@@ -23,19 +24,10 @@ class SearchState {
     years: [],
   });
 
-  /** Global max energy value across all currently displayed tracks */
+  /** Global max blended energy across all currently displayed tracks */
   get maxEnergy(): number {
-    let max = 0;
-    for (const group of this.results) {
-      for (const track of group.tracks) {
-        if (track.energy_vector) {
-          for (const v of track.energy_vector) {
-            if (v > max) max = v;
-          }
-        }
-      }
-    }
-    return max;
+    const allTracks = this.results.flatMap((g) => g.tracks);
+    return maxEnergyOfTracks(allTracks);
   }
 
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;

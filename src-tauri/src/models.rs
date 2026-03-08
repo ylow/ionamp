@@ -17,7 +17,9 @@ pub struct Track {
     pub bitrate: Option<i32>,
     pub format: Option<String>,
     pub file_size: Option<i64>,
-    pub energy_vector: Option<Vec<f32>>,
+    pub energy_rms: Option<Vec<f32>>,
+    pub energy_centroid: Option<Vec<f32>>,
+    pub energy_onset: Option<Vec<f32>>,
     pub created_at: Option<String>,
 }
 
@@ -37,7 +39,9 @@ pub struct NewTrack {
     pub bitrate: Option<i32>,
     pub format: Option<String>,
     pub file_size: Option<i64>,
-    pub energy_vector: Option<Vec<f32>>,
+    pub energy_rms: Option<Vec<f32>>,
+    pub energy_centroid: Option<Vec<f32>>,
+    pub energy_onset: Option<Vec<f32>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

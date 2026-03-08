@@ -116,8 +116,14 @@ pub fn reorder_playlist(conn: &Connection, playlist_id: i64, entry_ids: &[i64]) 
 }
 
 pub fn get_playlist_tracks(conn: &Connection, playlist_id: i64) -> Result<Vec<PlaylistEntry>> {
+    use super::tracks::row_to_track;
+
     let mut stmt = conn.prepare(
-        "SELECT pt.id as entry_id, pt.track_id, pt.position, t.*
+        "SELECT pt.id as entry_id, pt.track_id, pt.position,
+                t.id, t.file_path, t.title, t.artist, t.album, t.album_artist,
+                t.genre, t.year, t.track_number, t.disc_number, t.duration_secs,
+                t.sample_rate, t.bitrate, t.format, t.file_size,
+                t.energy_rms, t.energy_centroid, t.energy_onset, t.created_at
          FROM playlist_tracks pt
          JOIN tracks t ON t.id = pt.track_id
          WHERE pt.playlist_id = ?1
@@ -125,7 +131,7 @@ pub fn get_playlist_tracks(conn: &Connection, playlist_id: i64) -> Result<Vec<Pl
     )?;
 
     let rows = stmt.query_map(params![playlist_id], |row| {
-        let track = row_to_track_with_offset(row, 3)?;
+        let track = row_to_track(row)?;
         Ok(PlaylistEntry {
             id: row.get("entry_id")?,
             track_id: row.get("track_id")?,
@@ -134,32 +140,6 @@ pub fn get_playlist_tracks(conn: &Connection, playlist_id: i64) -> Result<Vec<Pl
         })
     })?;
     rows.collect()
-}
-
-/// Parse a Track from a row where track columns start at the given column offset.
-fn row_to_track_with_offset(row: &rusqlite::Row, offset: usize) -> Result<crate::models::Track> {
-    use super::tracks::energy_from_bytes;
-    let energy_blob: Option<Vec<u8>> = row.get(offset + 15)?;
-    let energy_vector = energy_blob.and_then(|b| energy_from_bytes(&b));
-    Ok(crate::models::Track {
-        id: row.get(offset)?,
-        file_path: row.get(offset + 1)?,
-        title: row.get(offset + 2)?,
-        artist: row.get(offset + 3)?,
-        album: row.get(offset + 4)?,
-        album_artist: row.get(offset + 5)?,
-        genre: row.get(offset + 6)?,
-        year: row.get(offset + 7)?,
-        track_number: row.get(offset + 8)?,
-        disc_number: row.get(offset + 9)?,
-        duration_secs: row.get(offset + 10)?,
-        sample_rate: row.get(offset + 11)?,
-        bitrate: row.get(offset + 12)?,
-        format: row.get(offset + 13)?,
-        file_size: row.get(offset + 14)?,
-        energy_vector,
-        created_at: row.get(offset + 16)?,
-    })
 }
 
 #[cfg(test)]
@@ -185,7 +165,9 @@ mod tests {
             bitrate: None,
             format: None,
             file_size: None,
-            energy_vector: None,
+            energy_rms: None,
+            energy_centroid: None,
+            energy_onset: None,
         }
     }
 

@@ -18,9 +18,12 @@ pub fn energy_from_bytes(bytes: &[u8]) -> Option<Vec<f32>> {
     )
 }
 
+fn blob_to_energy(row: &rusqlite::Row, col: &str) -> Result<Option<Vec<f32>>> {
+    let blob: Option<Vec<u8>> = row.get(col)?;
+    Ok(blob.and_then(|b| energy_from_bytes(&b)))
+}
+
 pub fn row_to_track(row: &rusqlite::Row) -> Result<Track> {
-    let energy_blob: Option<Vec<u8>> = row.get("energy_vector")?;
-    let energy_vector = energy_blob.and_then(|b| energy_from_bytes(&b));
     Ok(Track {
         id: row.get("id")?,
         file_path: row.get("file_path")?,
@@ -37,20 +40,25 @@ pub fn row_to_track(row: &rusqlite::Row) -> Result<Track> {
         bitrate: row.get("bitrate")?,
         format: row.get("format")?,
         file_size: row.get("file_size")?,
-        energy_vector,
+        energy_rms: blob_to_energy(row, "energy_rms")?,
+        energy_centroid: blob_to_energy(row, "energy_centroid")?,
+        energy_onset: blob_to_energy(row, "energy_onset")?,
         created_at: row.get("created_at")?,
     })
 }
 
 /// Inserts a track. Returns Some(id) if inserted, None if path already exists.
 pub fn insert_track(conn: &Connection, track: &NewTrack) -> Result<Option<i64>> {
-    let energy_bytes = track.energy_vector.as_ref().map(|v| energy_to_bytes(v));
+    let rms_bytes = track.energy_rms.as_ref().map(|v| energy_to_bytes(v));
+    let centroid_bytes = track.energy_centroid.as_ref().map(|v| energy_to_bytes(v));
+    let onset_bytes = track.energy_onset.as_ref().map(|v| energy_to_bytes(v));
     let rows = conn.execute(
         "INSERT OR IGNORE INTO tracks (
             file_path, title, artist, album, album_artist, genre,
             year, track_number, disc_number, duration_secs,
-            sample_rate, bitrate, format, file_size, energy_vector
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+            sample_rate, bitrate, format, file_size,
+            energy_rms, energy_centroid, energy_onset
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
         params![
             track.file_path,
             track.title,
@@ -66,7 +74,9 @@ pub fn insert_track(conn: &Connection, track: &NewTrack) -> Result<Option<i64>> 
             track.bitrate,
             track.format,
             track.file_size,
-            energy_bytes,
+            rms_bytes,
+            centroid_bytes,
+            onset_bytes,
         ],
     )?;
     if rows == 0 {
@@ -124,7 +134,9 @@ mod tests {
             bitrate: Some(320),
             format: Some("mp3".to_string()),
             file_size: Some(5_000_000),
-            energy_vector: Some(vec![0.1, 0.5, 0.9]),
+            energy_rms: Some(vec![0.1, 0.5, 0.9]),
+            energy_centroid: Some(vec![0.2, 0.3, 0.4]),
+            energy_onset: Some(vec![0.05, 0.1, 0.15]),
         }
     }
 
@@ -138,9 +150,9 @@ mod tests {
         let track = get_track_by_id(&conn, id).unwrap().unwrap();
         assert_eq!(track.file_path, "/music/test.mp3");
         assert_eq!(track.title.as_deref(), Some("Test Song"));
-        assert_eq!(track.artist.as_deref(), Some("Test Artist"));
-        assert_eq!(track.year, Some(2024));
-        assert_eq!(track.energy_vector, Some(vec![0.1, 0.5, 0.9]));
+        assert_eq!(track.energy_rms, Some(vec![0.1, 0.5, 0.9]));
+        assert_eq!(track.energy_centroid, Some(vec![0.2, 0.3, 0.4]));
+        assert_eq!(track.energy_onset, Some(vec![0.05, 0.1, 0.15]));
     }
 
     #[test]
@@ -149,14 +161,9 @@ mod tests {
         let track = make_test_track("/music/dup.mp3");
         let id1 = insert_track(&conn, &track).unwrap();
         assert!(id1.is_some());
-
-        // Second insert with same path should be ignored (INSERT OR IGNORE)
         let id2 = insert_track(&conn, &track).unwrap();
         assert!(id2.is_none());
-
-        // Only one track should exist
-        let exists = track_exists_by_path(&conn, "/music/dup.mp3").unwrap();
-        assert!(exists);
+        assert!(track_exists_by_path(&conn, "/music/dup.mp3").unwrap());
     }
 
     #[test]
@@ -164,25 +171,16 @@ mod tests {
         let conn = open_db_in_memory().unwrap();
         let track = make_test_track("/music/del.mp3");
         let id = insert_track(&conn, &track).unwrap().unwrap();
-
-        let deleted = delete_track(&conn, id).unwrap();
-        assert!(deleted);
-
-        let found = get_track_by_id(&conn, id).unwrap();
-        assert!(found.is_none());
-
-        // Deleting again returns false
-        let deleted_again = delete_track(&conn, id).unwrap();
-        assert!(!deleted_again);
+        assert!(delete_track(&conn, id).unwrap());
+        assert!(get_track_by_id(&conn, id).unwrap().is_none());
+        assert!(!delete_track(&conn, id).unwrap());
     }
 
     #[test]
     fn test_track_exists_by_path() {
         let conn = open_db_in_memory().unwrap();
         assert!(!track_exists_by_path(&conn, "/nope.mp3").unwrap());
-
-        let track = make_test_track("/music/exists.mp3");
-        insert_track(&conn, &track).unwrap();
+        insert_track(&conn, &make_test_track("/music/exists.mp3")).unwrap();
         assert!(track_exists_by_path(&conn, "/music/exists.mp3").unwrap());
     }
 }

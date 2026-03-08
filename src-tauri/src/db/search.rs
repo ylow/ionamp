@@ -280,7 +280,9 @@ mod tests {
             bitrate: None,
             format: None,
             file_size: None,
-            energy_vector: None,
+            energy_rms: None,
+            energy_centroid: None,
+            energy_onset: None,
         }
     }
 

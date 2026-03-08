@@ -14,7 +14,9 @@ export interface Track {
   bitrate: number | null;
   format: string | null;
   file_size: number | null;
-  energy_vector: number[] | null;
+  energy_rms: number[] | null;
+  energy_centroid: number[] | null;
+  energy_onset: number[] | null;
   created_at: string | null;
 }
 

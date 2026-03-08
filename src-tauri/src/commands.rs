@@ -217,13 +217,19 @@ pub fn cluster_by_energy(
     let result = search::search_tracks(&conn, &flat_query).map_err(map_err)?;
     let all_tracks: Vec<Track> = result.groups.into_iter().flat_map(|g| g.tracks).collect();
 
-    // Collect energy vectors
+    // Collect concatenated [rms ++ centroid ++ onset] vectors (384-dim) for clustering
     let mut vectors: Vec<Vec<f32>> = Vec::new();
-    let mut indices: Vec<usize> = Vec::new(); // track index in all_tracks
+    let mut indices: Vec<usize> = Vec::new();
 
     for (i, track) in all_tracks.iter().enumerate() {
-        if let Some(ref ev) = track.energy_vector {
-            vectors.push(ev.clone());
+        if let (Some(rms), Some(cent), Some(onset)) =
+            (&track.energy_rms, &track.energy_centroid, &track.energy_onset)
+        {
+            let mut concat = Vec::with_capacity(rms.len() + cent.len() + onset.len());
+            concat.extend(rms);
+            concat.extend(cent);
+            concat.extend(onset);
+            vectors.push(concat);
             indices.push(i);
         }
     }
