@@ -40,6 +40,8 @@ pub fn run() {
             commands::list_tag_categories,
             commands::create_tag_category,
             commands::delete_tag_category,
+            commands::get_values_for_category,
+            commands::create_tag_value,
             commands::tag_tracks,
             commands::untag_tracks,
             commands::get_track_tags,

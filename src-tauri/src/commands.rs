@@ -146,6 +146,25 @@ pub fn delete_tag_category(state: State<'_, AppState>, id: i64) -> CmdResult<()>
 }
 
 #[tauri::command]
+pub fn get_values_for_category(
+    state: State<'_, AppState>,
+    category_id: i64,
+) -> CmdResult<Vec<TagValue>> {
+    let conn = state.db.lock().map_err(map_err)?;
+    tags::get_values_for_category(&conn, category_id).map_err(map_err)
+}
+
+#[tauri::command]
+pub fn create_tag_value(
+    state: State<'_, AppState>,
+    category_id: i64,
+    value: String,
+) -> CmdResult<i64> {
+    let conn = state.db.lock().map_err(map_err)?;
+    tags::create_tag_value(&conn, category_id, &value).map_err(map_err)
+}
+
+#[tauri::command]
 pub fn tag_tracks(
     state: State<'_, AppState>,
     track_ids: Vec<i64>,
