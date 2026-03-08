@@ -18,7 +18,7 @@ pub fn energy_from_bytes(bytes: &[u8]) -> Option<Vec<f32>> {
     )
 }
 
-fn row_to_track(row: &rusqlite::Row) -> Result<Track> {
+pub fn row_to_track(row: &rusqlite::Row) -> Result<Track> {
     let energy_blob: Option<Vec<u8>> = row.get("energy_vector")?;
     let energy_vector = energy_blob.and_then(|b| energy_from_bytes(&b));
     Ok(Track {

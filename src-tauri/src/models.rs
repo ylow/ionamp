@@ -39,3 +39,32 @@ pub struct NewTrack {
     pub file_size: Option<i64>,
     pub energy_vector: Option<Vec<f32>>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Playlist {
+    pub id: i64,
+    pub name: String,
+    pub created_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlaylistEntry {
+    pub id: i64,
+    pub track_id: i64,
+    pub position: i32,
+    pub track: Track,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TagCategory {
+    pub id: i64,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TagValue {
+    pub id: i64,
+    pub category_id: i64,
+    pub category_name: String,
+    pub value: String,
+}
