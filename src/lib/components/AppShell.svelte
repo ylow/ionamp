@@ -3,6 +3,7 @@
   import Toolbar from "./Toolbar.svelte";
   import SearchPane from "./SearchPane.svelte";
   import PlaylistPane from "./PlaylistPane.svelte";
+  import PlaybackBar from "./PlaybackBar.svelte";
   import PropertiesDialog from "./PropertiesDialog.svelte";
   import TagDialog from "./TagDialog.svelte";
 
@@ -46,6 +47,7 @@
       {/snippet}
     </SplitPane>
   </div>
+  <PlaybackBar />
 </div>
 
 {#if propertiesTrackId !== null}

@@ -7,10 +7,12 @@
     groups,
     maxEnergy = 0,
     oncontextmenu,
+    ondblclick,
   }: {
     groups: TrackGroup[];
     maxEnergy?: number;
     oncontextmenu?: (e: MouseEvent, track: Track) => void;
+    ondblclick?: (track: Track) => void;
   } = $props();
 
   let collapsedGroups = $state<Set<string>>(new Set());
@@ -50,7 +52,7 @@
         </button>
         {#if !collapsedGroups.has(group.key)}
           {#each group.tracks as track}
-            <TrackRow {track} {allTrackIds} {maxEnergy} {oncontextmenu} />
+            <TrackRow {track} {allTrackIds} {maxEnergy} {oncontextmenu} {ondblclick} />
           {/each}
         {/if}
       </div>

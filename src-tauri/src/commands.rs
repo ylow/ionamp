@@ -6,6 +6,7 @@ use crate::audio::kmeans::cluster_energy_vectors;
 use crate::db::{playlists, search, tags, tracks};
 use crate::import::{self, ImportEvent};
 use crate::models::*;
+use crate::playback::{PlaybackStatus, SharedPlayback};
 use crate::state::AppState;
 
 type CmdResult<T> = Result<T, String>;
@@ -259,4 +260,58 @@ pub fn cluster_by_energy(
 pub struct EnergyClusterGroup {
     pub label: String,
     pub tracks: Vec<Track>,
+}
+
+// ── Playback ────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn play_file(
+    playback: State<'_, SharedPlayback>,
+    path: String,
+    title: Option<String>,
+    artist: Option<String>,
+    duration_secs: f64,
+) -> CmdResult<()> {
+    let mut pb = playback.lock().map_err(map_err)?;
+    pb.play_file(&path, title, artist, duration_secs)
+}
+
+#[tauri::command]
+pub fn pause_playback(playback: State<'_, SharedPlayback>) -> CmdResult<()> {
+    let pb = playback.lock().map_err(map_err)?;
+    pb.pause();
+    Ok(())
+}
+
+#[tauri::command]
+pub fn resume_playback(playback: State<'_, SharedPlayback>) -> CmdResult<()> {
+    let pb = playback.lock().map_err(map_err)?;
+    pb.resume();
+    Ok(())
+}
+
+#[tauri::command]
+pub fn stop_playback(playback: State<'_, SharedPlayback>) -> CmdResult<()> {
+    let mut pb = playback.lock().map_err(map_err)?;
+    pb.stop();
+    Ok(())
+}
+
+#[tauri::command]
+pub fn seek_playback(playback: State<'_, SharedPlayback>, position_secs: f64) -> CmdResult<()> {
+    let pb = playback.lock().map_err(map_err)?;
+    pb.seek(position_secs)
+}
+
+#[tauri::command]
+pub fn set_volume(playback: State<'_, SharedPlayback>, volume: f32) -> CmdResult<()> {
+    let pb = playback.lock().map_err(map_err)?;
+    pb.set_volume(volume);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_playback_status(playback: State<'_, SharedPlayback>) -> CmdResult<PlaybackStatus> {
+    let pb = playback.lock().map_err(map_err)?;
+    Ok(pb.status())
 }

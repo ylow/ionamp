@@ -127,3 +127,49 @@ export async function clusterByEnergy(
 ): Promise<EnergyClusterGroup[]> {
   return invoke("cluster_by_energy", { query });
 }
+
+// ── Playback ────────────────────────────────────────────────────────────
+
+export interface PlaybackStatus {
+  playing: boolean;
+  paused: boolean;
+  position_secs: number;
+  duration_secs: number;
+  current_path: string | null;
+  current_title: string | null;
+  current_artist: string | null;
+  ended: boolean;
+}
+
+export async function playFile(
+  path: string,
+  title: string | null,
+  artist: string | null,
+  durationSecs: number,
+): Promise<void> {
+  return invoke("play_file", { path, title, artist, durationSecs });
+}
+
+export async function pausePlayback(): Promise<void> {
+  return invoke("pause_playback");
+}
+
+export async function resumePlayback(): Promise<void> {
+  return invoke("resume_playback");
+}
+
+export async function stopPlayback(): Promise<void> {
+  return invoke("stop_playback");
+}
+
+export async function seekPlayback(positionSecs: number): Promise<void> {
+  return invoke("seek_playback", { positionSecs });
+}
+
+export async function setVolume(volume: number): Promise<void> {
+  return invoke("set_volume", { volume });
+}
+
+export async function getPlaybackStatus(): Promise<PlaybackStatus> {
+  return invoke("get_playback_status");
+}

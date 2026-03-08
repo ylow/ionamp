@@ -3,6 +3,7 @@ mod commands;
 mod db;
 mod import;
 mod models;
+mod playback;
 mod state;
 
 use state::AppState;
@@ -17,6 +18,8 @@ pub fn run() {
     let db_path = app_dir.join("ionamp.db");
 
     let conn = db::open_db(&db_path).expect("Failed to open database");
+    let playback_manager =
+        playback::PlaybackManager::new().expect("Failed to initialize audio output");
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -24,6 +27,7 @@ pub fn run() {
             db: Mutex::new(conn),
             db_path: db_path.clone(),
         })
+        .manage(Mutex::new(playback_manager) as playback::SharedPlayback)
         .invoke_handler(tauri::generate_handler![
             commands::import_files,
             commands::search_tracks,
@@ -47,6 +51,13 @@ pub fn run() {
             commands::untag_tracks,
             commands::get_track_tags,
             commands::cluster_by_energy,
+            commands::play_file,
+            commands::pause_playback,
+            commands::resume_playback,
+            commands::stop_playback,
+            commands::seek_playback,
+            commands::set_volume,
+            commands::get_playback_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

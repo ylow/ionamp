@@ -2,6 +2,7 @@
   import type { PlaylistEntry } from "$lib/types";
   import { playlistState } from "$lib/stores/playlist.svelte";
   import { playlistSelectionState } from "$lib/stores/selection.svelte";
+  import { playbackState } from "$lib/stores/playback.svelte";
   import Sparkline from "./Sparkline.svelte";
 
   let {
@@ -32,6 +33,12 @@
     } else {
       playlistSelectionState.select(entry.id);
     }
+  }
+
+  function handleDoubleClick(entry: PlaylistEntry) {
+    const tracks = entries.map((e) => e.track);
+    const index = entries.findIndex((e) => e.id === entry.id);
+    playbackState.playFromPlaylist(tracks, index);
   }
 
   function handleKeyDown(e: KeyboardEvent) {
@@ -137,6 +144,7 @@
       class:border-blue-500={dragOverIndex === i}
       draggable="true"
       onclick={(e) => handleClick(e, entry)}
+      ondblclick={() => handleDoubleClick(entry)}
       ondragstart={(e) => handleEntryDragStart(e, entry)}
       ondragover={(e) => handleDragOver(e, i)}
       ondragleave={handleDragLeave}

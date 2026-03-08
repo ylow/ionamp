@@ -8,11 +8,13 @@
     allTrackIds = [],
     maxEnergy = 0,
     oncontextmenu,
+    ondblclick,
   }: {
     track: Track;
     allTrackIds?: number[];
     maxEnergy?: number;
     oncontextmenu?: (e: MouseEvent, track: Track) => void;
+    ondblclick?: (track: Track) => void;
   } = $props();
 
   let selected = $derived(selectionState.isSelected(track.id));
@@ -58,6 +60,7 @@
   class:bg-blue-900={selected}
   class:hover:bg-blue-800={selected}
   onclick={handleClick}
+  ondblclick={() => ondblclick?.(track)}
   oncontextmenu={handleContextMenu}
   draggable="true"
   ondragstart={handleDragStart}

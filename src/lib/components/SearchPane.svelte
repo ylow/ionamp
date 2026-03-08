@@ -1,10 +1,15 @@
 <script lang="ts">
   import { searchState } from "$lib/stores/search.svelte";
+  import { playbackState } from "$lib/stores/playback.svelte";
   import SearchInput from "./SearchInput.svelte";
   import FilterBar from "./FilterBar.svelte";
   import TrackList from "./TrackList.svelte";
   import type { Track } from "$lib/types";
   import ContextMenu from "./ContextMenu.svelte";
+
+  function handleDoubleClick(track: Track) {
+    playbackState.playSingle(track);
+  }
 
   let contextMenu = $state<{
     x: number;
@@ -52,6 +57,7 @@
         groups={searchState.results}
         maxEnergy={searchState.maxEnergy}
         oncontextmenu={handleContextMenu}
+        ondblclick={handleDoubleClick}
       />
     {/if}
   </div>
