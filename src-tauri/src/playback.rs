@@ -1,10 +1,12 @@
-use std::fs::File;
-use std::io::BufReader;
 use std::path::Path;
 use std::sync::Mutex;
+use std::time::Duration;
 
-use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink};
+use rodio::buffer::SamplesBuffer;
+use rodio::{OutputStream, OutputStreamHandle, Sink};
 use serde::Serialize;
+
+use crate::audio::decode::decode_to_pcm;
 
 pub struct PlaybackManager {
     handle: OutputStreamHandle,
@@ -24,7 +26,6 @@ pub struct PlaybackStatus {
     pub current_path: Option<String>,
     pub current_title: Option<String>,
     pub current_artist: Option<String>,
-    /// True when the track has finished (sink is empty and we had a track loaded)
     pub ended: bool,
 }
 
@@ -36,7 +37,7 @@ impl PlaybackManager {
         // OutputStream is !Send so we can't store it in Mutex-managed state.
         std::mem::forget(stream);
         let sink = Sink::try_new(&handle).map_err(|e| format!("sink error: {}", e))?;
-        sink.pause(); // Start paused
+        sink.pause();
         Ok(Self {
             handle,
             sink,
@@ -54,18 +55,16 @@ impl PlaybackManager {
         artist: Option<String>,
         duration_secs: f64,
     ) -> Result<(), String> {
-        // Stop current playback
         self.sink.stop();
-        // Create a new sink (old one is consumed by stop)
         self.sink =
             Sink::try_new(&self.handle).map_err(|e| format!("sink error: {}", e))?;
 
-        let file =
-            File::open(Path::new(path)).map_err(|e| format!("file open error: {}", e))?;
-        let reader = BufReader::new(file);
-        let source =
-            Decoder::new(reader).map_err(|e| format!("decode error: {}", e))?;
+        // Decode with our own symphonia pipeline instead of rodio's decoder,
+        // which panics on certain files during format probing.
+        let audio = decode_to_pcm(Path::new(path))
+            .map_err(|e| format!("decode error: {}", e))?;
 
+        let source = SamplesBuffer::new(audio.channels as u16, audio.sample_rate, audio.samples);
         self.sink.append(source);
         self.current_path = Some(path.to_string());
         self.current_title = title;
@@ -93,7 +92,7 @@ impl PlaybackManager {
 
     pub fn seek(&self, position_secs: f64) -> Result<(), String> {
         self.sink
-            .try_seek(std::time::Duration::from_secs_f64(position_secs))
+            .try_seek(Duration::from_secs_f64(position_secs))
             .map_err(|e| format!("seek error: {}", e))
     }
 

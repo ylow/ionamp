@@ -11,6 +11,7 @@ use symphonia::core::probe::Hint;
 pub struct DecodedAudio {
     pub samples: Vec<f32>,
     pub sample_rate: u32,
+    pub channels: usize,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -25,7 +26,14 @@ pub enum DecodeError {
 
 const TARGET_SAMPLE_RATE: u32 = 22050;
 
-pub fn decode_to_mono_pcm(path: &Path) -> Result<DecodedAudio, DecodeError> {
+struct RawDecode {
+    samples: Vec<f32>,
+    sample_rate: u32,
+    channels: usize,
+}
+
+/// Decode all packets from a file, returning interleaved samples at original rate/channels.
+fn decode_raw(path: &Path) -> Result<RawDecode, DecodeError> {
     let file = std::fs::File::open(path)?;
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
 
@@ -47,19 +55,13 @@ pub fn decode_to_mono_pcm(path: &Path) -> Result<DecodedAudio, DecodeError> {
         .tracks()
         .iter()
         .find(|t| {
-            t.codec_params
-                .codec
-                != symphonia::core::codecs::CODEC_TYPE_NULL
+            t.codec_params.codec != symphonia::core::codecs::CODEC_TYPE_NULL
         })
         .ok_or(DecodeError::NoAudioTrack)?;
 
     let track_id = track.id;
-    let channels = track
-        .codec_params
-        .channels
-        .map(|c| c.count())
-        .unwrap_or(1);
-    let source_sample_rate = track.codec_params.sample_rate.unwrap_or(44100);
+    let channels = track.codec_params.channels.map(|c| c.count()).unwrap_or(1);
+    let sample_rate = track.codec_params.sample_rate.unwrap_or(44100);
 
     let mut decoder =
         symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default())?;
@@ -91,30 +93,51 @@ pub fn decode_to_mono_pcm(path: &Path) -> Result<DecodedAudio, DecodeError> {
         let num_frames = decoded.frames();
         let mut sample_buf = SampleBuffer::<f32>::new(num_frames as u64, spec);
         sample_buf.copy_interleaved_ref(decoded);
-
-        let interleaved = sample_buf.samples();
-
-        // Mix to mono by averaging channels
-        if channels > 1 {
-            for frame in interleaved.chunks_exact(channels) {
-                let mono: f32 = frame.iter().sum::<f32>() / channels as f32;
-                all_samples.push(mono);
-            }
-        } else {
-            all_samples.extend_from_slice(interleaved);
-        }
+        all_samples.extend_from_slice(sample_buf.samples());
     }
 
-    // Resample to target rate via linear interpolation
-    let samples = if source_sample_rate != TARGET_SAMPLE_RATE {
-        resample_linear(&all_samples, source_sample_rate, TARGET_SAMPLE_RATE)
+    Ok(RawDecode {
+        samples: all_samples,
+        sample_rate,
+        channels,
+    })
+}
+
+/// Decode to mono PCM at 22050 Hz for energy analysis.
+pub fn decode_to_mono_pcm(path: &Path) -> Result<DecodedAudio, DecodeError> {
+    let raw = decode_raw(path)?;
+
+    // Mix to mono
+    let mono = if raw.channels > 1 {
+        raw.samples
+            .chunks_exact(raw.channels)
+            .map(|frame| frame.iter().sum::<f32>() / raw.channels as f32)
+            .collect()
     } else {
-        all_samples
+        raw.samples
+    };
+
+    // Resample to target rate
+    let samples = if raw.sample_rate != TARGET_SAMPLE_RATE {
+        resample_linear(&mono, raw.sample_rate, TARGET_SAMPLE_RATE)
+    } else {
+        mono
     };
 
     Ok(DecodedAudio {
         samples,
         sample_rate: TARGET_SAMPLE_RATE,
+        channels: 1,
+    })
+}
+
+/// Decode to PCM at original sample rate and channel count for playback.
+pub fn decode_to_pcm(path: &Path) -> Result<DecodedAudio, DecodeError> {
+    let raw = decode_raw(path)?;
+    Ok(DecodedAudio {
+        samples: raw.samples,
+        sample_rate: raw.sample_rate,
+        channels: raw.channels,
     })
 }
 
