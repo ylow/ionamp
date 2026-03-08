@@ -1,0 +1,32 @@
+I want to make a music playlist management app. It does not actually store any
+music, just hold references to it in a database. However the key UX goals here
+is,
+1: easy search, usability, and high informational densitiy. I should be able to
+look for music and add it to a playlist and organize playlist contents in a
+single screen without having to navigate through multiple screens. The UI has
+two vertical panes. The primary and bigger left pane is a search UI where I see
+a list of all imported music with a search and filter bar on top. Search and
+filtering is instantaneuous. The secondary right pane is a playlist UI where I
+can select a playlist and see its contents. I can drag and drop music into
+playlists easily. Bottom of screen has the usual playback UI. Double clicking
+on any track will play it immediately. Right click on any track will have a
+menu listing with basic things like "properties" where I can see the track's
+metadata, location on disk, etc. Selecting a group of music and right click
+will also let me "tag" music. Right click on an in a playlist will let me
+"remove" a track from the playlist. Right click on a track in the search will
+also have a "remove" let me remove it from the database entirely.
+2: While searching I should be able to "cluster" music by groups. (implicitly
+like a SQL "group by" kinda idea). So for instance if I select "Artist",
+the search screen should split into multiple groups.
+3: When I import music, I will read all the available metadata and stick it
+into a database for rapid search 
+4: One final super powerful feature is that on import over the track, we build
+a histogram of "energy". Like how the energy of the music changes over the
+track. This can be prety coarse, like cut the track time into 128 uniform
+sections and compute a energy vector of 128 that is stored with each track.
+This is always displayed as a very small smoothed line graph next to each
+track. I can "group by" energy in the search in which case all filtered tracks
+will be rapidly clustered using the K-means++ algorithm and displayed as
+clustered groups.
+5: The target platform is MacOS, but will be nice if it is reasonably cross 
+platform. I have no strong opinions on the choice of language, UI toolkit, etc

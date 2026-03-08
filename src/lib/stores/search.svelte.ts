@@ -17,6 +17,7 @@ class SearchState {
   clusterSeed = $state(42);
   results = $state<TrackGroup[]>([]);
   totalCount = $state(0);
+  maxEnergy = $state(0);
   loading = $state(false);
   filterOptions = $state<FilterOptions>({
     artists: [],
@@ -24,12 +25,6 @@ class SearchState {
     genres: [],
     years: [],
   });
-
-  /** Global max blended energy across all currently displayed tracks */
-  get maxEnergy(): number {
-    const allTracks = this.results.flatMap((g) => g.tracks);
-    return maxEnergyOfTracks(allTracks);
-  }
 
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
 

@@ -4,10 +4,12 @@
   let {
     items,
     itemHeight = 24,
+    keyFn = (item: any, index: number) => index,
     row,
   }: {
     items: any[];
     itemHeight?: number;
+    keyFn?: (item: any, index: number) => any;
     row: Snippet<[item: any, index: number]>;
   } = $props();
 
@@ -52,7 +54,7 @@
 >
   <div style="height: {totalHeight}px; position: relative;">
     <div style="transform: translateY({offsetY}px);">
-      {#each visibleItems as item, i (startIndex + i)}
+      {#each visibleItems as item, i (keyFn(item, startIndex + i))}
         {@render row(item, startIndex + i)}
       {/each}
     </div>

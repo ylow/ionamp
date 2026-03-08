@@ -59,9 +59,9 @@
     {/each}
   </div>
 {:else}
-  <VirtualList items={flatTracks} itemHeight={24}>
+  <VirtualList items={flatTracks} itemHeight={24} keyFn={(item) => item.id}>
     {#snippet row(item: Track)}
-      <TrackRow track={item} {allTrackIds} {maxEnergy} {oncontextmenu} />
+      <TrackRow track={item} {allTrackIds} {maxEnergy} {oncontextmenu} {ondblclick} />
     {/snippet}
   </VirtualList>
 {/if}
