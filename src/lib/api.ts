@@ -124,8 +124,9 @@ export async function getTrackTags(trackId: number): Promise<TagValue[]> {
 
 export async function clusterByEnergy(
   query: SearchQuery,
+  seed: number = 42,
 ): Promise<EnergyClusterGroup[]> {
-  return invoke("cluster_by_energy", { query });
+  return invoke("cluster_by_energy", { query, seed });
 }
 
 // ── Playback ────────────────────────────────────────────────────────────

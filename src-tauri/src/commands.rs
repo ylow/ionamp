@@ -205,6 +205,7 @@ pub fn get_track_tags(state: State<'_, AppState>, track_id: i64) -> CmdResult<Ve
 pub fn cluster_by_energy(
     state: State<'_, AppState>,
     query: search::SearchQuery,
+    seed: u64,
 ) -> CmdResult<Vec<EnergyClusterGroup>> {
     let conn = state.db.lock().map_err(map_err)?;
 
@@ -242,7 +243,7 @@ pub fn cluster_by_energy(
         }]);
     }
 
-    let clusters = cluster_energy_vectors(&vectors);
+    let clusters = cluster_energy_vectors(&vectors, seed);
 
     let groups: Vec<EnergyClusterGroup> = clusters
         .into_iter()

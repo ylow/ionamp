@@ -97,6 +97,19 @@
     <option value="Energy">Energy</option>
   </select>
 
+  {#if searchState.groupBy === "Energy"}
+    <input
+      type="number"
+      value={searchState.clusterSeed}
+      onchange={(e) => {
+        searchState.clusterSeed = parseInt((e.target as HTMLInputElement).value) || 0;
+        searchState.search();
+      }}
+      class="w-14 px-1 py-0.5 text-xs bg-neutral-800 border border-neutral-600 rounded text-neutral-300 text-center"
+      title="Cluster seed"
+    />
+  {/if}
+
   {#if searchState.filters.length > 0}
     <button
       onclick={() => searchState.clearFilters()}

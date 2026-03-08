@@ -14,6 +14,7 @@ class SearchState {
   text = $state("");
   filters = $state<FilterPredicate[]>([]);
   groupBy = $state<GroupByField | "Energy" | null>(null);
+  clusterSeed = $state(42);
   results = $state<TrackGroup[]>([]);
   totalCount = $state(0);
   loading = $state(false);
@@ -43,7 +44,7 @@ class SearchState {
           limit: null,
           offset: null,
         };
-        const clusters: EnergyClusterGroup[] = await clusterByEnergy(query);
+        const clusters: EnergyClusterGroup[] = await clusterByEnergy(query, this.clusterSeed);
         this.results = clusters.map((c) => ({
           key: c.label,
           tracks: c.tracks,

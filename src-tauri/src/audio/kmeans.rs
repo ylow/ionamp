@@ -11,7 +11,7 @@ pub struct Cluster {
 
 const MAX_ITERATIONS: usize = 50;
 
-pub fn cluster_energy_vectors(vectors: &[Vec<f32>]) -> Vec<Cluster> {
+pub fn cluster_energy_vectors(vectors: &[Vec<f32>], seed: u64) -> Vec<Cluster> {
     if vectors.len() < 2 {
         return Vec::new();
     }
@@ -19,8 +19,7 @@ pub fn cluster_energy_vectors(vectors: &[Vec<f32>]) -> Vec<Cluster> {
     let k = select_k(vectors.len());
     let dim = vectors[0].len();
 
-    // Fixed seed for deterministic clustering
-    let mut rng = StdRng::seed_from_u64(42);
+    let mut rng = StdRng::seed_from_u64(seed);
     let mut centroids = kmeans_plus_plus_init(vectors, k, &mut rng);
 
     let mut assignments = vec![0usize; vectors.len()];
@@ -198,7 +197,7 @@ mod tests {
             vectors.push(vec![0.9; 128]);
         }
 
-        let clusters = cluster_energy_vectors(&vectors);
+        let clusters = cluster_energy_vectors(&vectors, 42);
         assert!(clusters.len() >= 2);
 
         // All 20 points should be assigned
@@ -216,7 +215,7 @@ mod tests {
             vectors.push(vec![0.9; 128]);
         }
 
-        let clusters = cluster_energy_vectors(&vectors);
+        let clusters = cluster_energy_vectors(&vectors, 42);
         if clusters.len() >= 2 {
             let avg_first = avg_energy(&clusters[0].centroid);
             let avg_last = avg_energy(&clusters[clusters.len() - 1].centroid);
@@ -227,14 +226,14 @@ mod tests {
     #[test]
     fn test_cluster_single_vector() {
         let vectors = vec![vec![0.5; 128]];
-        let clusters = cluster_energy_vectors(&vectors);
+        let clusters = cluster_energy_vectors(&vectors, 42);
         assert!(clusters.is_empty());
     }
 
     #[test]
     fn test_cluster_identical_vectors() {
         let vectors = vec![vec![0.5; 128]; 10];
-        let clusters = cluster_energy_vectors(&vectors);
+        let clusters = cluster_energy_vectors(&vectors, 42);
         // Should not panic, all points in one cluster
         let total: usize = clusters.iter().map(|c| c.member_indices.len()).sum();
         assert_eq!(total, 10);
