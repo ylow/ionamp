@@ -1,20 +1,22 @@
 # ionamp
 
-A local-first music playlist management app. Indexes audio files on disk, computes per-track energy profiles, and provides fast search, filtering, grouping, tagging, and playlist management in a dense two-pane UI.
+A playlist builder for DJs and music curators who organize by *feel*, not just metadata.
 
-ionamp does not store or play music files — it indexes them, extracts metadata, and organizes them.
+ionamp analyzes your music library's audio — loudness, brightness, rhythmic intensity — and lets you search, group, and build playlists using the actual sonic character of each track. Every track gets an inline energy sparkline so you can see its dynamic shape at a glance. Group by "Energy" to have K-means clustering sort your library into sonic neighborhoods. Then drag tracks into playlists, reorder them, and play them back — all from a fast, dense, keyboard-driven two-pane UI.
+
+Local-first. No cloud. No accounts. Your files stay on disk; ionamp just indexes them.
 
 ## Features
 
-- **Fast search** — Full-text search across title, artist, album, genre via SQLite FTS5
-- **Filtering** — Filter by artist, album, genre, year, or user-defined tags
-- **Grouping** — Group results by artist, album, genre, year, or energy clusters
-- **Energy profiling** — Computes a 128-point energy vector per track (RMS + spectral centroid + onset strength), displayed as inline sparklines
-- **Energy clustering** — K-means++ groups tracks by energy similarity
-- **Tagging** — Create custom tag categories and values, apply to tracks
-- **Playlists** — Create playlists, drag tracks from search, reorder via drag-and-drop, multi-select batch operations
-- **Two-pane UI** — Resizable split layout: search/browse on the left, playlist on the right
-- **Import** — Recursive folder scanning with progress, automatic deduplication by file path
+- **Energy analysis** — Each track is decoded and analyzed for RMS (loudness), spectral centroid (brightness), and onset strength (rhythmic intensity), producing a 128-point profile displayed as an inline sparkline
+- **Energy clustering** — Group your library by sonic similarity using K-means++, not just artist/album/genre
+- **Instant search** — Full-text search across title, artist, album, genre via SQLite FTS5
+- **Filtering and grouping** — Filter by artist, album, genre, year, or custom tags; group results into collapsible sections
+- **Custom tagging** — Create your own tag categories and values (mood, energy level, set position — whatever you need)
+- **Playlist building** — Drag tracks from search into playlists, multi-select reorder, batch delete
+- **Audio playback** — Double-click to play; playlist auto-advance with loop modes (single track, full playlist)
+- **Two-pane UI** — Resizable split layout: search/browse left, playlist right — everything on one screen
+- **Fast import** — Recursive folder scanning with progress, automatic deduplication
 
 ## Tech Stack
 
