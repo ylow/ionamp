@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git -C /Users/ylow/repos/ionamp log --oneline -10)"
+      "Bash(git -C /Users/ylow/repos/ionamp log --oneline -10)",
+      "Bash(cd /Users/ylow/repos/ionamp/src-tauri && cargo test 2>&1 | grep \"test result\")"
     ]
   }
 }

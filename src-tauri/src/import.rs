@@ -99,22 +99,23 @@ pub fn run_import(
             }
         };
 
-        // Decode and compute energy
-        match decode_to_mono_pcm(path) {
-            Ok(audio) => {
-                let ec = compute_energy_components(&audio.samples);
-                new_track.energy_rms = Some(ec.rms);
-                new_track.energy_centroid = Some(ec.centroid);
-                new_track.energy_onset = Some(ec.onset);
-            }
+        // Decode and compute energy — skip file entirely if decode fails
+        let audio = match decode_to_mono_pcm(path) {
+            Ok(audio) => audio,
             Err(e) => {
-                // Still import the track, just without energy data
                 on_event(ImportEvent::Skipped {
-                    file_name: file_name.clone(),
-                    reason: format!("decode warning (importing without energy): {}", e),
+                    file_name,
+                    reason: format!("unsupported format: {}", e),
                 });
+                errors += 1;
+                continue;
             }
-        }
+        };
+
+        let ec = compute_energy_components(&audio.samples);
+        new_track.energy_rms = Some(ec.rms);
+        new_track.energy_centroid = Some(ec.centroid);
+        new_track.energy_onset = Some(ec.onset);
 
         // Insert into DB
         match insert_track(conn, &new_track) {

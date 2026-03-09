@@ -38,9 +38,9 @@
   >
     Import
   </button>
-  {#if importState.imported > 0}
+  {#if importState.imported > 0 || importState.errors > 0}
     <span class="text-xs text-neutral-500">
-      Last: {importState.imported} imported, {importState.skipped} skipped
+      Last: {importState.imported} imported{#if importState.skipped > 0}, {importState.skipped} skipped{/if}{#if importState.errors > 0}<span class="text-amber-400">, {importState.errors} unsupported</span>{/if}
     </span>
   {/if}
 {/if}
